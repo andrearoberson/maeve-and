@@ -111,7 +111,7 @@ if user_input:
     # Run the assistant with memory
     run = client.beta.threads.runs.create(
         thread_id=st.session_state.thread_id,
-        assistant_id=os.getenv("OPENAI_ASSISTANT_ID")  # Lil M's Assistant ID
+        assistant_id=os.getenv("ASSISTANT_ID")  # Lil M's Assistant ID
     )
 
     # Wait for completion
