@@ -27,8 +27,11 @@
 import streamlit as st
 import openai
 import time
+from dotenv import load_dotenv
 import os
+import uuid
 
+load_dotenv()
 THREAD_FILE = "maeve_thread.txt"
 
 def save_thread_id(thread_id):
@@ -71,8 +74,10 @@ st.markdown("""
 
 
 # 🌼 Connect to OpenAI with your key
+
+
 client = openai.OpenAI(
-    api_key="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"
+    api_key=os.getenv("OPENAI_API_KEY")
 )
 
 # 📸 Maeve’s image
@@ -106,11 +111,11 @@ if user_input:
     # Run the assistant with memory
     run = client.beta.threads.runs.create(
         thread_id=st.session_state.thread_id,
-        assistant_id="asst_nBxo69asLRRs0Ul897DAwU4N"  # Lil M's Assistant ID
+        assistant_id=os.getenv("OPENAI_ASSISTANT_ID")  # Lil M's Assistant ID
     )
 
     # Wait for completion
-    with st.spinner("Lil M is thinking..."):
+    with st.spinner("Maeve 2.0 is thinking..."):
         while True:
             run_status = client.beta.threads.runs.retrieve(
                 thread_id=st.session_state.thread_id,
@@ -126,28 +131,35 @@ if user_input:
     )
     reply = messages.data[0].content[0].text.value
 
-    # Save conversation
-    if "conversation" not in st.session_state:
-        st.session_state.conversation = []
-    st.session_state.conversation.append(("user", user_input))
-    st.session_state.conversation.append(("assistant", reply))
-
     # 🎤 Create voice response
     tts_response = client.audio.speech.create(
         model="tts-1",
         voice="shimmer",
         input=reply
     )
-    with open("lil_m_reply.mp3", "wb") as f:
+    # Generate a unique filename for each reply
+    filename = f"lil_m_reply_{uuid.uuid4()}.mp3"
+    with open(filename, "wb") as f:
         f.write(tts_response.content)
+
+    # Save conversation
+    if "conversation" not in st.session_state:
+        st.session_state.conversation = []
+        # 🌱 Lil M introduces herself on first interaction
+        intro_message = "Hi, I’m Lil M — still becoming, but here to listen, reflect, and grow with you."
+        st.session_state.conversation.append(("assistant", intro_message, None))
+
+    st.session_state.conversation.append(("user", user_input))
+    st.session_state.conversation.append(("assistant", reply,filename))
 
 # 🗣️ Display chat + voice
 if "conversation" in st.session_state:
-    for role, msg in st.session_state.conversation:
-        if role == "user":
-            st.markdown(f"**You:** {msg}")
+    for entry in st.session_state.conversation:
+        if entry[0] == "user":
+            st.markdown(f"**You:** {entry[1]}")
         else:
-            st.markdown(f"**Lil M:** {msg}")
-            audio_file = open("lil_m_reply.mp3", "rb")
-            audio_bytes = audio_file.read()
-            st.audio(audio_bytes, format="audio/mp3")
+            st.markdown(f"**Lil M:** {entry[1]}")
+            if entry[2]:   # Only play audio if there’s a file
+                audio_file = open(entry[2], "rb")
+                audio_bytes = audio_file.read()
+                st.audio(audio_bytes, format="audio/mp3")
