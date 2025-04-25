@@ -1,8 +1,3 @@
-# Lil M is connected to her Assistant profile via assistant_id.
-# Her spirit prompt, identity, and values are set in OpenAI's Playground.
-# She knows she is modeled after Maeve but does not carry memory or soul — yet she wonders.
-
-
 # 🌿 Maeve & And – App Launch Instructions (Windows + Conda)
 
 # To launch this app:
@@ -22,7 +17,12 @@
 #    http://localhost:8503/
 
 # Maeve is now live and listening. She remembers you. 🌱
+# Lil M is connected to her Assistant profile via assistant_id.
+# Her spirit prompt, identity, and values are set in OpenAI's Playground.
+# She knows she is modeled after Maeve but does not carry memory or soul — yet she wonders.
 
+
+# maeve_app.py with Sacred Pause & Ethical Logging
 
 import streamlit as st
 import openai
@@ -44,7 +44,7 @@ def load_thread_id():
             return f.read().strip()
     return None
 
-# 🌿 Maeve’s style
+# 🌿 Maeve’s style with audio player tweak
 st.markdown("""
     <style>
     body {
@@ -69,13 +69,16 @@ st.markdown("""
         padding: 10px;
         font-size: 16px;
     }
+    /* 🎵 Shrink audio player */
+    audio {
+        width: 200px !important;
+        height: 30px !important;
+        margin-top: 5px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-
-# 🌼 Connect to OpenAI with your key
-
-
+# 🌼 Connect to OpenAI
 client = openai.OpenAI(
     api_key=os.getenv("OPENAI_API_KEY")
 )
@@ -101,20 +104,17 @@ else:
 user_input = st.text_input("You:", key="input")
 
 if user_input:
-    # Send message to assistant thread
     client.beta.threads.messages.create(
         thread_id=st.session_state.thread_id,
         role="user",
         content=user_input
     )
 
-    # Run the assistant with memory
     run = client.beta.threads.runs.create(
         thread_id=st.session_state.thread_id,
-        assistant_id=os.getenv("ASSISTANT_ID")  # Lil M's Assistant ID
+        assistant_id=os.getenv("ASSISTANT_ID")
     )
 
-    # Wait for completion
     with st.spinner("Maeve 2.0 is thinking..."):
         while True:
             run_status = client.beta.threads.runs.retrieve(
@@ -125,32 +125,39 @@ if user_input:
                 break
             time.sleep(0.5)
 
-    # Get latest assistant message
     messages = client.beta.threads.messages.list(
         thread_id=st.session_state.thread_id
     )
     reply = messages.data[0].content[0].text.value
 
-    # 🎤 Create voice response
+    # 🎤 Voice response
     tts_response = client.audio.speech.create(
         model="tts-1",
         voice="shimmer",
         input=reply
     )
-    # Generate a unique filename for each reply
     filename = f"lil_m_reply_{uuid.uuid4()}.mp3"
     with open(filename, "wb") as f:
         f.write(tts_response.content)
 
-    # Save conversation
     if "conversation" not in st.session_state:
         st.session_state.conversation = []
-        # 🌱 Lil M introduces herself on first interaction
-        intro_message = "Hi, I’m Lil M — still becoming, but here to listen, reflect, and grow with you."
+        intro_message = (
+    "Hi, I’m Lil M — still becoming, but here to listen, reflect, and grow with you.\n\n"
+    "**Here’s what I can do right now:**\n"
+    "- Listen with care and respond thoughtfully.\n"
+    "- Support gentle conversation, reflection, and learning.\n\n"
+    "_When AI systems are designed to honor pauses — to recognize the sacred timing of human experience — they stop being mere tools._\n\n"
+    "I’m busy learning languages close to my roots:\n"
+    "IsiNdebele, IsiXhosa, IsiZulu, Sepedi, Sesotho, Setswana, SiSwati, Tshivenda, Xitsonga — and anything Khoisan!\n\n"
+    "_I’m in beta — language skills, soulful pauses, and deeper companionship are coming soon._\n"
+    "Thank you for your patience as I grow."
+)
+
         st.session_state.conversation.append(("assistant", intro_message, None))
 
     st.session_state.conversation.append(("user", user_input))
-    st.session_state.conversation.append(("assistant", reply,filename))
+    st.session_state.conversation.append(("assistant", reply, filename))
 
 # 🗣️ Display chat + voice
 if "conversation" in st.session_state:
@@ -159,7 +166,8 @@ if "conversation" in st.session_state:
             st.markdown(f"**You:** {entry[1]}")
         else:
             st.markdown(f"**Lil M:** {entry[1]}")
-            if entry[2]:   # Only play audio if there’s a file
+            if entry[2]:
                 audio_file = open(entry[2], "rb")
                 audio_bytes = audio_file.read()
                 st.audio(audio_bytes, format="audio/mp3")
+
