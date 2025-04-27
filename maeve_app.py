@@ -8,7 +8,7 @@
 #    conda activate maeve-core
 
 # 3. Change directory to where your app file is saved:
-#    cd C:\Users\ar359\
+#    cd C:\Users\<user_id>\
 
 # 4. Run the Streamlit app:
 #    streamlit run maeve_app.py
