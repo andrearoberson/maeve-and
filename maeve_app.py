@@ -102,6 +102,10 @@ if st.session_state.message_count >= 7:
     )
     user_input = None
 else:
+    st.markdown(
+        "🌱 *Note: Beta Maeve offers a limited number of responses per session while she’s still learning. "
+        "Thank you for your patience as she grows with soul!*"
+    )
     user_input = st.text_input("You:", key="input")
 
 if user_input:
