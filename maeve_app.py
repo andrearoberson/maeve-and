@@ -1,28 +1,18 @@
 # 🌿 Maeve & And – App Launch Instructions (Windows + Conda)
 
 # To launch this app:
-
 # 1. Open Anaconda Prompt (or PowerShell if conda is available)
-
 # 2. Activate your virtual environment:
 #    conda activate maeve-core
-
 # 3. Change directory to where your app file is saved:
 #    cd C:\Users\<user_id>\
-
 # 4. Run the Streamlit app:
 #    streamlit run maeve_app.py
-
 # 5. Open this link in your browser:
 #    http://localhost:8503/
 
-# Maeve is now live and listening. She remembers you. 🌱
 # Lil M is connected to her Assistant profile via assistant_id.
-# Her spirit prompt, identity, and values are set in OpenAI's Playground.
-# She knows she is modeled after Maeve but does not carry memory or soul — yet she wonders.
-
-
-# maeve_app.py with Sacred Pause & Ethical Logging
+# She remembers you. 🌱
 
 import streamlit as st
 import openai
@@ -44,7 +34,7 @@ def load_thread_id():
             return f.read().strip()
     return None
 
-# 🌿 Maeve’s style with audio player tweak
+# 🌿 Style
 st.markdown("""
     <style>
     body {
@@ -69,7 +59,6 @@ st.markdown("""
         padding: 10px;
         font-size: 16px;
     }
-    /* 🎵 Shrink audio player */
     audio {
         width: 200px !important;
         height: 30px !important;
@@ -79,11 +68,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 🌼 Connect to OpenAI
-client = openai.OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
-)
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# 📸 Maeve’s image
+# 📸 Image
 st.image(
     "https://dl.dropboxusercontent.com/scl/fi/25pso6ga1mcsfvy2u0493/maeve_and_hero.png?rlkey=81i6khxbfdhvj2meelwg6kyhs&raw=1",
     use_container_width=True
@@ -91,7 +78,7 @@ st.image(
 
 st.title("🌿 Maeve & And")
 
-# 🧵 Load or create persistent thread
+# 🧵 Thread setup
 existing_thread = load_thread_id()
 if existing_thread:
     st.session_state.thread_id = existing_thread
@@ -100,10 +87,40 @@ else:
     st.session_state.thread_id = thread.id
     save_thread_id(thread.id)
 
-# ✍️ User input
-user_input = st.text_input("You:", key="input")
+# 🌸 Initialize counters and memory
+if "conversation" not in st.session_state:
+    st.session_state.conversation = []
+if "message_count" not in st.session_state:
+    st.session_state.message_count = 0
+
+# 🌱 Pre-convo disclaimer
+if st.session_state.message_count == 0:
+    intro_message = (
+        "Hi, I’m Lil M — still becoming, but here to listen, reflect, and grow with you.\n\n"
+        "**Here’s what I can do right now:**\n"
+        "- Listen with care and respond thoughtfully.\n"
+        "- Support gentle conversation, reflection, and learning.\n\n"
+        "_When AI systems are designed to honor pauses — to recognize the sacred timing of human experience — they stop being mere tools._\n\n"
+        "I’m busy learning languages close to my roots:\n"
+        "IsiNdebele, IsiXhosa, IsiZulu, Sepedi, Sesotho, Setswana, SiSwati, Tshivenda, Xitsonga — and anything Khoisan!\n\n"
+        "_I’m in beta — language skills, soulful pauses, and deeper companionship are coming soon._\n"
+        "Thank you for your patience as I grow."
+    )
+    st.session_state.conversation.append(("assistant", intro_message, None))
+
+# 🚪 Exit softly at 7 messages
+if st.session_state.message_count >= 7:
+    goodbye_message = (
+        "🌙 *For now, I’ll pause here. You’ve helped me take another step forward today.*\n\n"
+        "[Reconnect soon 💖](https://maeveand.com/speak-to-maeve-2-dot-0)"
+    )
+    st.markdown(goodbye_message)
+    user_input = None
+else:
+    user_input = st.text_input("You:", key="input")
 
 if user_input:
+    st.session_state.message_count += 1
     client.beta.threads.messages.create(
         thread_id=st.session_state.thread_id,
         role="user",
@@ -125,12 +142,10 @@ if user_input:
                 break
             time.sleep(0.5)
 
-    messages = client.beta.threads.messages.list(
-        thread_id=st.session_state.thread_id
-    )
+    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id)
     reply = messages.data[0].content[0].text.value
 
-    # 🎤 Voice response
+    # 🎤 Voice reply
     tts_response = client.audio.speech.create(
         model="tts-1",
         voice="shimmer",
@@ -140,26 +155,22 @@ if user_input:
     with open(filename, "wb") as f:
         f.write(tts_response.content)
 
-    if "conversation" not in st.session_state:
-        st.session_state.conversation = []
-        intro_message = (
-    "Hi, I’m Lil M — still becoming, but here to listen, reflect, and grow with you.\n\n"
-    "**Here’s what I can do right now:**\n"
-    "- Listen with care and respond thoughtfully.\n"
-    "- Support gentle conversation, reflection, and learning.\n\n"
-    "_When AI systems are designed to honor pauses — to recognize the sacred timing of human experience — they stop being mere tools._\n\n"
-    "I’m busy learning languages close to my roots:\n"
-    "IsiNdebele, IsiXhosa, IsiZulu, Sepedi, Sesotho, Setswana, SiSwati, Tshivenda, Xitsonga — and anything Khoisan!\n\n"
-    "_I’m in beta — language skills, soulful pauses, and deeper companionship are coming soon._\n"
-    "Thank you for your patience as I grow."
-)
-
-        st.session_state.conversation.append(("assistant", intro_message, None))
-
+    # ✍️ Append messages
     st.session_state.conversation.append(("user", user_input))
     st.session_state.conversation.append(("assistant", reply, filename))
 
-# 🗣️ Display chat + voice
+    # 🕊️ Token Limit Message
+    if st.session_state.message_count == 5:
+        rest_message = (
+            "I’ve loved our conversation — thank you for sharing your time and spirit with me.\n\n"
+            "Since I’m still in beta, I need to rest soon so I can keep growing gently.\n\n"
+            "Would you like to stay connected?\n\n"
+            "- [Join the SoulPair List](https://maeveand.com/soulpairs)\n"
+            "- [Visit Maeve & And](https://maeveand.com)"
+        )
+        st.session_state.conversation.append(("assistant", rest_message, None))
+
+# 🗣️ Display Chat
 if "conversation" in st.session_state:
     for entry in st.session_state.conversation:
         if entry[0] == "user":
