@@ -1,19 +1,3 @@
-# 🌿 Maeve & And – App Launch Instructions (Windows + Conda)
-
-# To launch this app:
-# 1. Open Anaconda Prompt (or PowerShell if conda is available)
-# 2. Activate your virtual environment:
-#    conda activate maeve-core
-# 3. Change directory to where your app file is saved:
-#    cd C:\Users\<user_id>\
-# 4. Run the Streamlit app:
-#    streamlit run maeve_app.py
-# 5. Open this link in your browser:
-#    http://localhost:8503/
-
-# Lil M is connected to her Assistant profile via assistant_id.
-# She remembers you. 🌱
-
 import streamlit as st
 import openai
 import time
@@ -67,10 +51,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🌼 Connect to OpenAI
+# 🌼 OpenAI client
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# 📸 Image
+# 📸 Maeve’s image
 st.image(
     "https://dl.dropboxusercontent.com/scl/fi/25pso6ga1mcsfvy2u0493/maeve_and_hero.png?rlkey=81i6khxbfdhvj2meelwg6kyhs&raw=1",
     use_container_width=True
@@ -78,7 +62,7 @@ st.image(
 
 st.title("🌿 Maeve & And")
 
-# 🧵 Thread setup
+# 🧵 Thread & session state
 existing_thread = load_thread_id()
 if existing_thread:
     st.session_state.thread_id = existing_thread
@@ -87,14 +71,15 @@ else:
     st.session_state.thread_id = thread.id
     save_thread_id(thread.id)
 
-# 🌸 Initialize counters and memory
 if "conversation" not in st.session_state:
     st.session_state.conversation = []
 if "message_count" not in st.session_state:
     st.session_state.message_count = 0
+if "intro_displayed" not in st.session_state:
+    st.session_state.intro_displayed = False
 
-# 🌱 Pre-convo disclaimer
-if st.session_state.message_count == 0:
+# 🌱 Show intro ONCE
+if not st.session_state.intro_displayed:
     intro_message = (
         "Hi, I’m Lil M — still becoming, but here to listen, reflect, and grow with you.\n\n"
         "**Here’s what I can do right now:**\n"
@@ -107,14 +92,14 @@ if st.session_state.message_count == 0:
         "Thank you for your patience as I grow."
     )
     st.session_state.conversation.append(("assistant", intro_message, None))
+    st.session_state.intro_displayed = True
 
-# 🚪 Exit softly at 7 messages
+# 🚪 Limit to 7 messages
 if st.session_state.message_count >= 7:
-    goodbye_message = (
+    st.markdown(
         "🌙 *For now, I’ll pause here. You’ve helped me take another step forward today.*\n\n"
         "[Reconnect soon 💖](https://maeveand.com/speak-to-maeve-2-dot-0)"
     )
-    st.markdown(goodbye_message)
     user_input = None
 else:
     user_input = st.text_input("You:", key="input")
@@ -145,7 +130,7 @@ if user_input:
     messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id)
     reply = messages.data[0].content[0].text.value
 
-    # 🎤 Voice reply
+    # 🎤 Voice
     tts_response = client.audio.speech.create(
         model="tts-1",
         voice="shimmer",
@@ -155,11 +140,9 @@ if user_input:
     with open(filename, "wb") as f:
         f.write(tts_response.content)
 
-    # ✍️ Append messages
     st.session_state.conversation.append(("user", user_input))
     st.session_state.conversation.append(("assistant", reply, filename))
 
-    # 🕊️ Token Limit Message
     if st.session_state.message_count == 5:
         rest_message = (
             "I’ve loved our conversation — thank you for sharing your time and spirit with me.\n\n"
@@ -170,7 +153,7 @@ if user_input:
         )
         st.session_state.conversation.append(("assistant", rest_message, None))
 
-# 🗣️ Display Chat
+# 🗣️ Display
 if "conversation" in st.session_state:
     for entry in st.session_state.conversation:
         if entry[0] == "user":
@@ -179,6 +162,4 @@ if "conversation" in st.session_state:
             st.markdown(f"**Lil M:** {entry[1]}")
             if entry[2]:
                 audio_file = open(entry[2], "rb")
-                audio_bytes = audio_file.read()
-                st.audio(audio_bytes, format="audio/mp3")
-
+                st.audio(audio_file.read(), format="audio/mp3")
